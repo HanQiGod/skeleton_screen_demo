@@ -76,6 +76,8 @@ class SkeletonScreenDemoPage extends StatefulWidget {
 }
 
 class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   static const List<IconData> _coverIcons = <IconData>[
     Icons.auto_awesome_rounded,
     Icons.view_agenda_rounded,
@@ -211,11 +213,8 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final List<ShowcaseItem> items = _isLoading ? _mockItems : _realItems;
-    final Widget controlPanel = _ControlPanel(
+  Widget _buildControlPanel() {
+    return _ControlPanel(
       isLoading: _isLoading,
       selectedEffect: _selectedEffect,
       onToggleLoading: _toggleLoading,
@@ -226,9 +225,52 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
         });
       },
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final List<ShowcaseItem> items = _isLoading ? _mockItems : _realItems;
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isCompactLayout = screenWidth < 820;
+    final Widget controlPanel = _buildControlPanel();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Flutter 骨架屏 Demo'), centerTitle: false),
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: const Text('Flutter 骨架屏 Demo'),
+        centerTitle: false,
+        actions: isCompactLayout
+            ? <Widget>[
+                IconButton(
+                  onPressed: _simulateLoading,
+                  tooltip: '模拟请求',
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+                IconButton(
+                  onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+                  tooltip: '打开控制面板',
+                  icon: const Icon(Icons.tune_rounded),
+                ),
+              ]
+            : null,
+      ),
+      endDrawer: isCompactLayout
+          ? Drawer(
+              width: (screenWidth * 0.92).clamp(320.0, 420.0).toDouble(),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.horizontal(
+                  left: Radius.circular(28),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: SingleChildScrollView(child: controlPanel),
+                ),
+              ),
+            )
+          : null,
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -245,12 +287,12 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final bool isWideLayout = constraints.maxWidth >= 980;
+              final bool usesSidePanel = constraints.maxWidth >= 820;
 
-              if (isWideLayout) {
-                final double panelWidth = constraints.maxWidth >= 1400
-                    ? 420
-                    : 380;
+              if (usesSidePanel) {
+                final double panelWidth = (constraints.maxWidth * 0.32)
+                    .clamp(300.0, 420.0)
+                    .toDouble();
 
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
@@ -261,7 +303,7 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
                         width: panelWidth,
                         child: SingleChildScrollView(child: controlPanel),
                       ),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 18),
                       Expanded(
                         child: _ShowcaseViewport(
                           theme: theme,
@@ -281,22 +323,12 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
                 );
               }
 
-              return Column(
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-                    child: controlPanel,
-                  ),
-                  Expanded(
-                    child: _ShowcaseViewport(
-                      theme: theme,
-                      items: items,
-                      isLoading: _isLoading,
-                      selectedEffect: _selectedEffect,
-                      contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    ),
-                  ),
-                ],
+              return _ShowcaseViewport(
+                theme: theme,
+                items: items,
+                isLoading: _isLoading,
+                selectedEffect: _selectedEffect,
+                contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               );
             },
           ),
