@@ -232,45 +232,42 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
     final ThemeData theme = Theme.of(context);
     final List<ShowcaseItem> items = _isLoading ? _mockItems : _realItems;
     final double screenWidth = MediaQuery.sizeOf(context).width;
-    final bool isCompactLayout = screenWidth < 820;
     final Widget controlPanel = _buildControlPanel();
+    final double drawerWidth = screenWidth >= 1200
+        ? 460
+        : (screenWidth * 0.92).clamp(320.0, 420.0).toDouble();
 
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
         title: const Text('Flutter 骨架屏 Demo'),
         centerTitle: false,
-        actions: isCompactLayout
-            ? <Widget>[
-                IconButton(
-                  onPressed: _simulateLoading,
-                  tooltip: '模拟请求',
-                  icon: const Icon(Icons.refresh_rounded),
-                ),
-                IconButton(
-                  onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-                  tooltip: '打开控制面板',
-                  icon: const Icon(Icons.tune_rounded),
-                ),
-              ]
-            : null,
+        actions: <Widget>[
+          IconButton(
+            onPressed: _simulateLoading,
+            tooltip: '模拟请求',
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          IconButton(
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            tooltip: '打开控制面板',
+            icon: const Icon(Icons.tune_rounded),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      endDrawer: isCompactLayout
-          ? Drawer(
-              width: (screenWidth * 0.92).clamp(320.0, 420.0).toDouble(),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.horizontal(
-                  left: Radius.circular(28),
-                ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  child: SingleChildScrollView(child: controlPanel),
-                ),
-              ),
-            )
-          : null,
+      endDrawer: Drawer(
+        width: drawerWidth,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.horizontal(left: Radius.circular(28)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: SingleChildScrollView(child: controlPanel),
+          ),
+        ),
+      ),
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -287,48 +284,16 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              final bool usesSidePanel = constraints.maxWidth >= 820;
-
-              if (usesSidePanel) {
-                final double panelWidth = (constraints.maxWidth * 0.32)
-                    .clamp(300.0, 420.0)
-                    .toDouble();
-
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      SizedBox(
-                        width: panelWidth,
-                        child: SingleChildScrollView(child: controlPanel),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: _ShowcaseViewport(
-                          theme: theme,
-                          items: items,
-                          isLoading: _isLoading,
-                          selectedEffect: _selectedEffect,
-                          contentPadding: const EdgeInsets.fromLTRB(
-                            24,
-                            20,
-                            24,
-                            28,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
+              final bool isWideLayout = constraints.maxWidth >= 900;
 
               return _ShowcaseViewport(
                 theme: theme,
                 items: items,
                 isLoading: _isLoading,
                 selectedEffect: _selectedEffect,
-                contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                contentPadding: isWideLayout
+                    ? const EdgeInsets.fromLTRB(24, 20, 24, 28)
+                    : const EdgeInsets.fromLTRB(16, 16, 16, 24),
               );
             },
           ),
