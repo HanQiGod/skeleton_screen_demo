@@ -215,6 +215,17 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final List<ShowcaseItem> items = _isLoading ? _mockItems : _realItems;
+    final Widget controlPanel = _ControlPanel(
+      isLoading: _isLoading,
+      selectedEffect: _selectedEffect,
+      onToggleLoading: _toggleLoading,
+      onSimulateLoading: _simulateLoading,
+      onEffectChanged: (DemoEffect effect) {
+        setState(() {
+          _selectedEffect = effect;
+        });
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Flutter 骨架屏 Demo'), centerTitle: false),
@@ -232,67 +243,124 @@ class _SkeletonScreenDemoPageState extends State<SkeletonScreenDemoPage> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-                child: _ControlPanel(
-                  isLoading: _isLoading,
-                  selectedEffect: _selectedEffect,
-                  onToggleLoading: _toggleLoading,
-                  onSimulateLoading: _simulateLoading,
-                  onEffectChanged: (DemoEffect effect) {
-                    setState(() {
-                      _selectedEffect = effect;
-                    });
-                  },
-                ),
-              ),
-              Expanded(
-                child: Skeletonizer(
-                  enabled: _isLoading,
-                  effect: _selectedEffect.effect,
-                  enableSwitchAnimation: true,
-                  containersColor: const Color(0xFFE2E8F0),
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool isWideLayout = constraints.maxWidth >= 980;
+
+              if (isWideLayout) {
+                final double panelWidth = constraints.maxWidth >= 1400
+                    ? 420
+                    : 380;
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      _SectionIntro(
-                        title: '页面结构先出现，数据随后补齐',
-                        description:
-                            '这个示例把文章里的关键点都放进了一页：BoneMock 假数据、切换动画，以及 ignore / keep / unite / replace / leaf 的局部控制。',
+                      SizedBox(
+                        width: panelWidth,
+                        child: SingleChildScrollView(child: controlPanel),
                       ),
-                      const SizedBox(height: 16),
-                      Skeleton.leaf(child: _SummaryCard(theme: theme)),
-                      const SizedBox(height: 20),
-                      Text(
-                        '推荐内容',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F172A),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: _ShowcaseViewport(
+                          theme: theme,
+                          items: items,
+                          isLoading: _isLoading,
+                          selectedEffect: _selectedEffect,
+                          contentPadding: const EdgeInsets.fromLTRB(
+                            24,
+                            20,
+                            24,
+                            28,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '点击顶部按钮可以反复体验加载态和内容态之间的切换。',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF475569),
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      for (final ShowcaseItem item in items)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _ArticleCard(item: item),
-                        ),
                     ],
                   ),
-                ),
-              ),
-            ],
+                );
+              }
+
+              return Column(
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                    child: controlPanel,
+                  ),
+                  Expanded(
+                    child: _ShowcaseViewport(
+                      theme: theme,
+                      items: items,
+                      isLoading: _isLoading,
+                      selectedEffect: _selectedEffect,
+                      contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ShowcaseViewport extends StatelessWidget {
+  const _ShowcaseViewport({
+    required this.theme,
+    required this.items,
+    required this.isLoading,
+    required this.selectedEffect,
+    required this.contentPadding,
+  });
+
+  final ThemeData theme;
+  final List<ShowcaseItem> items;
+  final bool isLoading;
+  final DemoEffect selectedEffect;
+  final EdgeInsets contentPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      enabled: isLoading,
+      effect: selectedEffect.effect,
+      enableSwitchAnimation: true,
+      containersColor: const Color(0xFFE2E8F0),
+      child: ListView(
+        padding: contentPadding,
+        children: <Widget>[
+          _SectionIntro(
+            title: '页面结构先出现，数据随后补齐',
+            description:
+                '这个示例把文章里的关键点都放进了一页：BoneMock 假数据、切换动画，以及 ignore / keep / unite / replace / leaf 的局部控制。',
+          ),
+          const SizedBox(height: 16),
+          Skeleton.leaf(child: _SummaryCard(theme: theme)),
+          const SizedBox(height: 20),
+          Text(
+            '推荐内容',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '点击顶部按钮可以反复体验加载态和内容态之间的切换。',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF475569),
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (final ShowcaseItem item in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _ArticleCard(item: item),
+            ),
+        ],
       ),
     );
   }
